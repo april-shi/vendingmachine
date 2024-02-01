@@ -39,7 +39,6 @@
 
 package vendingMachine;
 
-
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -216,14 +215,10 @@ public class View extends JFrame {
 		  
 	}
 
-
-
-
   //Instance Variables
   
   private Controller controller;  //Controller creates button in View
 	private Model      model;       //Model tells update what to display
-	
 	
 	private JButton    buyPepsi, buyCoke;
 	private JTextField deposited, message;

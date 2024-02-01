@@ -24,5 +24,6 @@ public class Application
 	  //Build the application, then show it on the screen
 	  view.build();
 	  view.show();
+
 	}
 }
