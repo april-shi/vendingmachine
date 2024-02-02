@@ -45,10 +45,6 @@
 
 package vendingMachine;
 
-import java.lang.Math;
-
-import java.text.DecimalFormat;
-
 
 public class Model {
 	//Define fields (all instance variables)
@@ -61,9 +57,9 @@ public class Model {
 	private int    cokeLeft = 5;
 	private int    pepsiLeft = 5;
 	
-	private int    quartersLeft, dimesLeft, nickelsLeft;
+	private int    quartersLeft = 10 , dimesLeft = 10 , nickelsLeft = 10;
 
-	private int quartersInputed, dimesInputed, nickelsInputed;
+	private int quartersCurrentUser, dimesCurrentUser, nickelsCurrentUser;
 
 	public int refund;
 
@@ -94,15 +90,21 @@ public class Model {
 	}
 	String getDeposited() {
 
-		int total = nickelsInputed * 5 + dimesInputed * 10 + quartersInputed * 25;
-
-		refund += total;
+		int total = nickelsCurrentUser * 5 + dimesCurrentUser * 10 + quartersCurrentUser * 25;
 
 		double number = (double) total / 100d;
 
 		String formattedNumber = String.format("%.2f", number);
 
 		return "" + formattedNumber;
+
+	}
+
+	int getDepositedAsInt() {
+
+		int total = nickelsCurrentUser * 5 + dimesCurrentUser * 10 + quartersCurrentUser * 25;
+
+		return total;
 
 	}
 
@@ -172,19 +174,84 @@ public class Model {
 
 	public void cancel() {
 
-		nickelsLeft = nickelsLeft - nickelsInputed;
-		setMessage(nickelsInputed + "returned");
-		nickelsInputed = 0;
+		int unaccounted = 0;
 
-		dimesLeft = dimesLeft - dimesInputed;
-		setMessage(dimesInputed + "returned");
-		dimesInputed = 0;
+		String msg = "";
 
-		quartersLeft = quartersLeft - quartersInputed;
-		setMessage(quartersInputed + "returned");
-		quartersInputed = 0;
+		nickelsLeft = nickelsLeft - nickelsCurrentUser;
+		if (nickelsCurrentUser == 1) {
 
-		refund = 0;
+			msg = nickelsCurrentUser + " nickel, ";
+		} else {
+
+			msg = nickelsCurrentUser + " nickels, ";
+		}
+
+		nickelsCurrentUser = 0;
+
+		dimesLeft = dimesLeft - dimesCurrentUser;
+
+		if (dimesLeft < 0) {
+
+			unaccounted = 5 * dimesLeft * -1;
+			dimesLeft = 0;
+
+		}
+
+
+
+		if (dimesCurrentUser == 1) {
+
+			msg += dimesCurrentUser + " dime, ";
+
+		} else {
+
+			msg += dimesCurrentUser + " dimes, ";
+		}
+
+		dimesCurrentUser = 0;
+
+		quartersLeft = quartersLeft - quartersCurrentUser;
+
+		if (quartersCurrentUser == 1) {
+
+			msg += "and " + quartersCurrentUser + " quarter returned";
+
+		} else {
+
+			msg += "and " + quartersCurrentUser + " quarters returned";
+		}
+
+		quartersCurrentUser = 0;
+
+		while (unaccounted > 0) {
+
+			if (unaccounted >= 25 && quartersLeft > 25) {
+
+				unaccounted -= 25;
+				quartersLeft--;
+
+			} else if (unaccounted >= 10 && dimesLeft > 10) {
+
+				unaccounted -= 10;
+				dimesLeft--;
+
+			} else if (unaccounted >= 5 && nickelsLeft > 5) {
+
+				unaccounted -= 5;
+				nickelsLeft--;
+
+			} else {
+
+				System.out.println("ERROR OH NO!!!!");
+				break;
+
+			}
+
+		}
+
+		setMessage(msg);
+
 
 		view.update();
 
@@ -199,24 +266,24 @@ public class Model {
 		if (amount == 5) {
 
 			this.amount += 5;
-			nickelsInputed += 1; //subset
 			nickelsLeft += 1;
+			nickelsCurrentUser += 1;
 			setMessage("1 nickel received");
 
 
 		} else if (amount == 10) {
 
 			this.amount += 10;
-			dimesInputed += 1;
 			dimesLeft += 1;
+			dimesCurrentUser += 1;
 			setMessage("1 dime received");
 
 
 		} else if (amount == 25) {
 
-			this.amount+=25;
-			quartersInputed += 1;
+			this.amount += 25;
 			quartersLeft += 1;
+			quartersCurrentUser += 1;
 			setMessage("1 quarter received");
 
 		}
@@ -228,34 +295,43 @@ public class Model {
 	public void buy (String product) {
 
 		System.out.println("buy: " + product);
-		if (product == "pepsi") {
-			if (pepsiPrice <= moneyLeft()) {
-				//might have to zero out qarater, dime, smth
-				//can buy
-				quartersInputed = 0;
-				nickelsInputed = 0;
-				dimesInputed = 0;
-                giveChange(pepsiPrice);
+
+		if (product.equals("Pepsi")) {
+
+			if (pepsiPrice <= getDepositedAsInt()) {
+
+                if (giveChange(pepsiPrice)) {
+
+					pepsiLeft--;
+					cancel();
+					setMessage("Pepsi bought: change = " + message);
+
+				}
 
 			} else {
 
 				// cant buy
-				getDeposited();
 				setMessage("you don't have enough money");
 
 			}
 
 		}
 
-		if (product == "coke") {
-			if (cokeLeft <= moneyLeft()) {
+		if (product.equals("Coke")) {
 
-				giveChange(cokePrice);
+			if (cokePrice <= moneyLeft()) {
+
+				if (giveChange(cokePrice)) {
+
+					cokeLeft--;
+					cancel();
+					setMessage("Coke bought: change = " + message);
+
+				}
 
 			} else {
 
-				//can't buy
-				getDeposited();
+				// cant buy
 				setMessage("you don't have enough money");
 
 			}
@@ -273,41 +349,65 @@ public class Model {
 	}
 
 	//might have to change and create both to experiment both with
-	private void giveChange(int purchasePrice){
-		int nickelsReturned = 0;
-		int dimessReturned = 0;
-		int quartersReturned = 0;
+	private boolean giveChange(int purchasePrice){
+		int nickelSpent = 0;
+		int dimeSpent = 0;
+		int quarterSpent = 0;
 
-		purchasePrice = 50;
+		int tempQ = quartersLeft;
+		int tempD = dimesLeft;
+		int tempN = nickelsLeft;
+
+		int userMoney = getDepositedAsInt();
+
 		int remaining = purchasePrice;
+		int wasRemaining = remaining;
 
 		while (remaining > 0){
-			if (quartersLeft  > 0){
-				quartersLeft--;
-				quartersReturned++;
+
+			wasRemaining = remaining;
+
+			if (tempQ > 0 && remaining >= 25){
+
+				tempQ--;
+				//quartersLeft--;
+				quarterSpent++;
 				remaining -= 25;
-			} else if (dimesLeft > 0){
-				dimesLeft--;
-				dimessReturned++;
+
+
+			} else if (tempD > 0 && remaining >= 10){
+
+				tempD--;
+				//dimesLeft--;
+				dimeSpent++;
 				remaining -= 10;
-			} else if (nickelsLeft > 0){
-				nickelsLeft--;
-				nickelsReturned++;
+
+			} else if (tempN > 0 && remaining >= 5){
+
+				tempN--;
+				//nickelsLeft--;
+				nickelSpent++;
 				remaining -= 5;
+
 			}
-		}
 
-		if (quartersLeft < purchasePrice) {
+			if (remaining == wasRemaining) {
 
-			dimesLeft--;
-			remaining -= 10;
+				setMessage("can't give exact change");
+				return false;
 
-		} else if (dimesLeft < purchasePrice) {
-
-			nickelsLeft--;
-			remaining -= 5;
+			}
 
 		}
+
+
+		quartersLeft -= quarterSpent;
+		quartersCurrentUser -= quarterSpent;
+		nickelsLeft -= nickelSpent;
+		nickelsCurrentUser -= nickelSpent;
+		dimesLeft -= dimeSpent;
+		dimesCurrentUser -= dimeSpent;
+		return true;
 
 	}
 
