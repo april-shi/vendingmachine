@@ -174,6 +174,7 @@ public class Model {
 
 	public void cancel() {
 
+
 		int unaccounted = 0;
 
 		String msg = "";
@@ -290,6 +291,7 @@ public class Model {
 
 		view.update();
 
+
 	}
 
 	public void buy (String product) {
@@ -300,10 +302,10 @@ public class Model {
 
 			if (pepsiPrice <= getDepositedAsInt()) {
 
-                if (giveChange(pepsiPrice)) {
+				if (giveChange(pepsiPrice)) {
 
 					pepsiLeft--;
-					cancel();
+					//cancel();
 					setMessage("Pepsi bought: change = " + message);
 
 				}
@@ -324,7 +326,6 @@ public class Model {
 				if (giveChange(cokePrice)) {
 
 					cokeLeft--;
-					cancel();
 					setMessage("Coke bought: change = " + message);
 
 				}
@@ -400,14 +401,61 @@ public class Model {
 
 		}
 
+		System.out.println(quarterSpent + "," + dimeSpent + "," + nickelSpent);
 
-		quartersLeft -= quarterSpent;
-		quartersCurrentUser -= quarterSpent;
-		nickelsLeft -= nickelSpent;
-		nickelsCurrentUser -= nickelSpent;
-		dimesLeft -= dimeSpent;
-		dimesCurrentUser -= dimeSpent;
+		int changeNeeded = getDepositedAsInt() - (quarterSpent * 25 + dimeSpent * 10 + nickelSpent * 5) ;
+		System.out.println("change needed: " + changeNeeded);
+		int dimesReturned = 0;
+		int nickelsReturned = 0;
+		int quartersReturned = 0;
+
+		while (changeNeeded > 0){
+			if (quartersCurrentUser > 0 && changeNeeded >= 25){
+				System.out.println("Return user quarter");
+				quartersReturned++;
+				quartersCurrentUser--;
+				quartersLeft--;
+				changeNeeded -= 25;
+			} else if (dimesCurrentUser > 0 && changeNeeded >= 10){
+				System.out.println("Return user dime");
+				dimesReturned++;
+				dimesCurrentUser--;
+				dimesLeft--;
+				changeNeeded -= 10;
+			} else if (nickelsCurrentUser > 0 && changeNeeded >= 5){
+				System.out.println("Return user nickel");
+				nickelsReturned++;
+				nickelsCurrentUser--;
+				nickelsLeft--;
+				changeNeeded -= 5;
+			} else if (quartersLeft > 0 && changeNeeded >= 25){
+				System.out.println("Return quarter");
+				quartersReturned++;
+				quartersLeft--;
+				changeNeeded -= 25;
+			} else if (dimesLeft > 0 && changeNeeded >= 10){
+				System.out.println("Return dime");
+				dimesReturned++;
+				dimesLeft--;
+				changeNeeded -= 10;
+			} else if (nickelsLeft > 0 && changeNeeded >= 5){
+				System.out.println("Return nickel");
+				nickelsReturned++;
+				nickelsLeft--;
+				changeNeeded -= 5;
+
+			} else {
+				System.out.println("ERROR: Couldn't make proper change");
+			}
+		}
+
+		setMessage(quartersReturned + " quarters, " + dimesReturned + " dimes, and " + nickelsReturned + " nickels returned");
+
+		quartersCurrentUser = 0;
+		dimesCurrentUser = 0;
+		nickelsCurrentUser = 0;
 		return true;
+
 
 	}
 
